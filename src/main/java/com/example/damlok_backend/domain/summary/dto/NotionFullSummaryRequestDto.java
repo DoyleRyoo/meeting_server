@@ -22,5 +22,5 @@ public class NotionFullSummaryRequestDto {
     private String objective;
     private String discussion;
     private String decision;
-    private String notionPageId;
+    private String notionPageUrl;
 }

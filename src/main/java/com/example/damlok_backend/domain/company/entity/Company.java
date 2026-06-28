@@ -27,6 +27,9 @@ public class Company extends BaseEntity {
 
     private String phone;
 
+    @Column(name = "company_notion_url")
+    private String companyNotionUrl;
+
     @OneToMany(mappedBy = "company")
     private List<User> users = new ArrayList<>();
 

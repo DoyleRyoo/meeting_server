@@ -14,6 +14,4 @@ import lombok.Setter;
 public class NotionActionItemUploadResultDto {
 
     private Long actionItemId;
-    private String notionPageId;
-    private String notionPageUrl;
 }

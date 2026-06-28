@@ -1,6 +1,7 @@
 package com.example.damlok_backend.domain.summary.service;
 
 import com.example.damlok_backend.domain.actionitem.entity.ActionItem;
+import com.example.damlok_backend.domain.company.entity.Company;
 import com.example.damlok_backend.domain.actionitem.enums.ActionItemPriority;
 import com.example.damlok_backend.domain.actionitem.enums.ActionItemStatus;
 import com.example.damlok_backend.domain.actionitem.repository.ActionItemRepository;
@@ -134,12 +135,12 @@ public class SummaryService {
     }
 
     @Transactional(readOnly = true)
-    public SavedFullSummaryResponseDto getFullSummary(Long meetingId) {
+    public SavedFullSummaryResponseDto getSummary(Long meetingId) {
         Meeting meeting = getMeeting(meetingId);
         Summary summary = summaryRepository.findByMeetingId(meeting.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Full summary not found."));
+                .orElseThrow(() -> new IllegalArgumentException("Summary not found."));
 
-        return toSavedFullSummaryResponse(meeting, summary);
+        return toSavedSummaryResponse(meeting, summary);
     }
 
     @Transactional(readOnly = true)
@@ -160,12 +161,12 @@ public class SummaryService {
     }
 
     @Transactional
-    public SavedFullSummaryResponseDto updateFullSummary(Long meetingId, SummaryContentDto request) {
-        validateFullSummaryUpdateRequest(request);
+    public SavedFullSummaryResponseDto updateSummary(Long meetingId, SummaryContentDto request) {
+        validateSummaryUpdateRequest(request);
 
         Meeting meeting = getMeeting(meetingId);
         Summary summary = summaryRepository.findByMeetingId(meeting.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Full summary not found."));
+                .orElseThrow(() -> new IllegalArgumentException("Summary not found."));
 
         summary.updateContent(
                 request.getObjective().trim(),
@@ -173,7 +174,7 @@ public class SummaryService {
                 request.getDecision().trim()
         );
 
-        return toSavedFullSummaryResponse(meeting, summary);
+        return toSavedSummaryResponse(meeting, summary);
     }
 
     @Transactional
@@ -214,11 +215,12 @@ public class SummaryService {
     public NotionSummaryUploadResponseDto uploadSavedSummaryToNotion(Long meetingId) {
         Meeting meeting = getMeeting(meetingId);
         Summary summary = summaryRepository.findByMeetingId(meeting.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Full summary not found."));
+                .orElseThrow(() -> new IllegalArgumentException("Summary not found."));
         List<ActionItem> actionItems = actionItemRepository.findAllByMeetingId(meeting.getId());
+        String companyNotionUrl = getCompanyNotionUrl(meeting);
 
-        NotionUploadResultDto fullSummaryResult = notionSummaryClient.uploadFullSummary(
-                toNotionFullSummaryRequest(meeting, summary)
+        notionSummaryClient.uploadFullSummary(
+                toNotionFullSummaryRequest(meeting, summary, companyNotionUrl)
         );
 
         List<ActionItemNotionUpload> actionItemUploads = new ArrayList<>();
@@ -236,8 +238,6 @@ public class SummaryService {
 
         return NotionSummaryUploadResponseDto.builder()
                 .meetingId(meeting.getId())
-                .fullSummaryNotionPageId(fullSummaryResult.getNotionPageId())
-                .fullSummaryNotionPageUrl(fullSummaryResult.getNotionPageUrl())
                 .uploadedActionItemCount(actionItemUploads.size())
                 .actionItemNotionResults(actionItemUploads.stream()
                         .map(this::toNotionActionItemUploadResult)
@@ -474,7 +474,22 @@ public class SummaryService {
         };
     }
 
-    private NotionFullSummaryRequestDto toNotionFullSummaryRequest(Meeting meeting, Summary summary) {
+    private String getCompanyNotionUrl(Meeting meeting) {
+        Project project = meeting.getProject();
+        if (project == null || project.getCompany() == null) {
+            throw new IllegalStateException("Meeting company information is missing.");
+        }
+
+        Company company = project.getCompany();
+        String companyNotionUrl = company.getCompanyNotionUrl();
+        if (!StringUtils.hasText(companyNotionUrl)) {
+            throw new IllegalStateException("Company Notion URL is not configured.");
+        }
+
+        return companyNotionUrl.trim();
+    }
+
+    private NotionFullSummaryRequestDto toNotionFullSummaryRequest(Meeting meeting, Summary summary, String companyNotionUrl) {
         return NotionFullSummaryRequestDto.builder()
                 .meetingId(meeting.getId())
                 .meetingTitle(meeting.getTitle())
@@ -483,6 +498,7 @@ public class SummaryService {
                 .objective(summary.getObjective())
                 .discussion(summary.getDiscussion())
                 .decision(summary.getDecision())
+                .notionPageUrl(companyNotionUrl)
                 .build();
     }
 
@@ -505,15 +521,13 @@ public class SummaryService {
     private NotionActionItemUploadResultDto toNotionActionItemUploadResult(ActionItemNotionUpload upload) {
         return NotionActionItemUploadResultDto.builder()
                 .actionItemId(upload.actionItem().getId())
-                .notionPageId(upload.result().getNotionPageId())
-                .notionPageUrl(upload.result().getNotionPageUrl())
                 .build();
     }
 
     private record ActionItemNotionUpload(ActionItem actionItem, NotionUploadResultDto result) {
     }
 
-    private SavedFullSummaryResponseDto toSavedFullSummaryResponse(Meeting meeting, Summary summary) {
+    private SavedFullSummaryResponseDto toSavedSummaryResponse(Meeting meeting, Summary summary) {
         return SavedFullSummaryResponseDto.builder()
                 .meetingId(meeting.getId())
                 .summary(SummaryContentDto.builder()
@@ -558,7 +572,7 @@ public class SummaryService {
                 .orElseThrow(() -> new IllegalArgumentException("Meeting not found."));
     }
 
-    private void validateFullSummaryUpdateRequest(SummaryContentDto request) {
+    private void validateSummaryUpdateRequest(SummaryContentDto request) {
         if (request == null) {
             throw new IllegalArgumentException("Summary content is required.");
         }

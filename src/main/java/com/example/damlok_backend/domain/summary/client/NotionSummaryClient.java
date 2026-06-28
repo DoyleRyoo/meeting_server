@@ -36,7 +36,6 @@ public class NotionSummaryClient {
     private final String notionApiBaseUrl;
     private final String notionToken;
     private final String notionVersion;
-    private final String fullSummaryParentPageId;
     private final String actionItemDatabaseId;
 
     public NotionSummaryClient(
@@ -44,7 +43,6 @@ public class NotionSummaryClient {
             @Value("${notion.api.base-url:https://api.notion.com/v1}") String notionApiBaseUrl,
             @Value("${notion.api.token:}") String notionToken,
             @Value("${notion.api.version:2022-06-28}") String notionVersion,
-            @Value("${notion.summary.parent-page-id:}") String fullSummaryParentPageId,
             @Value("${notion.action-item.database-id:}") String actionItemDatabaseId
     ) {
         this.restTemplate = restTemplateBuilder
@@ -54,21 +52,14 @@ public class NotionSummaryClient {
         this.notionApiBaseUrl = notionApiBaseUrl;
         this.notionToken = notionToken;
         this.notionVersion = notionVersion;
-        this.fullSummaryParentPageId = fullSummaryParentPageId;
         this.actionItemDatabaseId = actionItemDatabaseId;
     }
 
     public NotionUploadResultDto uploadFullSummary(NotionFullSummaryRequestDto request) {
-        if (StringUtils.hasText(request.getNotionPageId())) {
-            return updatePage(request.getNotionPageId(), buildFullSummaryProperties(request));
-        }
-
-        if (!StringUtils.hasText(fullSummaryParentPageId)) {
-            throw new IllegalStateException("Notion full summary parent page id is not configured.");
-        }
+        String parentPageId = extractPageId(request.getNotionPageUrl());
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("parent", Map.of("page_id", fullSummaryParentPageId));
+        body.put("parent", Map.of("page_id", parentPageId));
         body.put("properties", buildFullSummaryProperties(request));
         body.put("children", buildFullSummaryChildren(request));
 
@@ -166,6 +157,20 @@ public class NotionSummaryClient {
         } catch (RestClientException exception) {
             throw new IllegalStateException("Notion upload failed.", exception);
         }
+    }
+
+    private String extractPageId(String notionPageUrl) {
+        if (!StringUtils.hasText(notionPageUrl)) {
+            throw new IllegalStateException("Company Notion URL is not configured.");
+        }
+
+        String urlWithoutQuery = notionPageUrl.trim().split("[?#]", 2)[0];
+        String pageId = urlWithoutQuery.replaceAll("[^A-Fa-f0-9]", "");
+        if (pageId.length() < 32) {
+            throw new IllegalStateException("Company Notion URL does not contain a valid page id.");
+        }
+
+        return pageId.substring(pageId.length() - 32);
     }
 
     private HttpHeaders buildHeaders() {

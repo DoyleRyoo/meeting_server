@@ -17,8 +17,6 @@ import lombok.Setter;
 public class NotionSummaryUploadResponseDto {
 
     private Long meetingId;
-    private String fullSummaryNotionPageId;
-    private String fullSummaryNotionPageUrl;
     private int uploadedActionItemCount;
 
     @JsonProperty("action_item_notion_results")

@@ -48,8 +48,8 @@ public class SummaryController {
     }
 
     @GetMapping("/full")
-    public SavedFullSummaryResponseDto getFullSummary(@RequestParam Long mid) {
-        return summaryService.getFullSummary(mid);
+    public SavedFullSummaryResponseDto getSummary(@RequestParam Long mid) {
+        return summaryService.getSummary(mid);
     }
 
     @GetMapping("/short")
@@ -63,11 +63,11 @@ public class SummaryController {
     }
 
     @PatchMapping("/update/full")
-    public SavedFullSummaryResponseDto updateFullSummary(
+    public SavedFullSummaryResponseDto updateSummary(
             @RequestParam Long mid,
             @RequestBody SummaryContentDto request
     ) {
-        return summaryService.updateFullSummary(mid, request);
+        return summaryService.updateSummary(mid, request);
     }
 
     @PatchMapping("/update/short")
