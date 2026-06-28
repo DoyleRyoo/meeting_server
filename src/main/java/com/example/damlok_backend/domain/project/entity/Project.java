@@ -17,18 +17,23 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Entity
+@Table(name = "project")
 public class Project extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "project_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id")
+    @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
+    @Column(name = "project_title", nullable = false)
     private String title;
 
+    @Lob
+    @Column(name = "project_description")
     private String description;
 
     public void setTitle(String title) {
@@ -40,6 +45,7 @@ public class Project extends BaseEntity {
     }
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "project_status", nullable = false)
     private ProjectStatus status;
 
     public void setStatus(ProjectStatus status) {

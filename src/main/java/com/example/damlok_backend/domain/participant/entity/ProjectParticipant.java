@@ -23,7 +23,7 @@ public class ProjectParticipant extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @Column(name = "project_member_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -35,15 +35,15 @@ public class ProjectParticipant extends BaseEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
+    @Column(name = "project_member_role", nullable = false)
     private ProjectMemberRole role;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "project_status", nullable = false)
     private ProjectMemberStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "grade", nullable = false)
+    @Column(name = "project_member_grade", nullable = false)
     private ProjectMemberGrade grade;
 
     public void updateStatus(ProjectMemberStatus status) {
